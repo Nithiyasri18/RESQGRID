@@ -1,0 +1,311 @@
+# RESQGRID — Five Detailed GitHub Copilot Agent Prompts
+
+**Project:** RESQGRID — Intelligent Emergency Rescue Routing and Team Dispatch Optimization Using Graph Algorithms  
+**Purpose:** University Design and Analysis of Algorithms (DAA) capstone. This is an academic simulation and human-reviewed decision-support prototype, **not** a live emergency response service.  
+**Workflow:** Open the project folder in VS Code, select GitHub Copilot **Agent Mode**, paste one prompt at a time, inspect changes, run tests, and commit a working phase before proceeding.
+
+## Shared technical contract for all five phases
+
+- Frontend: React + Vite + TypeScript, React Router, Tailwind CSS, Lucide React, React Leaflet, Recharts, Axios or a typed fetch client.
+- Backend: Python FastAPI, SQLAlchemy 2, Pydantic 2, Alembic, pytest.
+- Database: PostgreSQL + PostGIS, with spatial indexes and migrations.
+- Geographic data: OpenStreetMap road geometry imported with OSMnx, cached locally and stored in PostGIS. Preserve attribution and document ODbL obligations.
+- Algorithms: custom Python implementations of BFS/DFS, Dijkstra, A*, greedy matching and min-cost max-flow. NetworkX may be used for validation/tests, not as the production implementation of the DAA algorithms.
+- Geography: configurable Chennai metropolitan **study area**. Distinguish this from Greater Chennai Corporation administrative limits; Avadi and Tambaram may be included in the study area without claiming they are within GCC limits.
+- Scenarios: all floods, cyclones, blocked roads, incidents, rescue teams, movement, and response times are **simulated** unless explicitly connected to a verified source. Never call a route 'safe' solely because it is open in OSM.
+- Engineering: strict typing, validation, structured errors, no hardcoded secrets, role-based authorization, accessibility, responsive design, no decorative nonfunctional buttons, automated tests, and reproducible seed data.
+- Workflow instruction for every prompt: inspect existing code first; state a short plan; implement in small coherent steps; run available checks; fix failures; report what is actually implemented and what remains. Do not delete working features or claim success without verification.
+
+---
+
+# PROMPT 1 — Full-stack architecture, professional UI, authentication and database
+
+You are the lead software architect, senior full-stack developer, UI/UX designer, and QA engineer for **RESQGRID**. Work directly inside my current VS Code workspace using Copilot Agent Mode. Build a robust and visually impressive Phase 1 foundation for a university DAA capstone. This is not a static mockup, not a landing-page-only project, and not a collection of disconnected sample components. It must be a functioning React frontend connected to a FastAPI backend and PostgreSQL/PostGIS database.
+
+**First action:** Inspect the workspace, detect existing files, package managers, Python and Node versions, and any previous setup. Give a short implementation plan. If the workspace is empty, scaffold the project. If files exist, preserve them and adapt the structure without destructive rewrites. Work incrementally and run commands rather than just printing code snippets.
+
+## A. Repository and infrastructure
+
+Create a maintainable monorepo:
+
+```text
+resqgrid/
+  frontend/
+    src/
+      app/                 # router, providers, global app setup
+      components/ui/       # reusable cards, inputs, tables, dialogs
+      components/maps/     # future map components
+      components/charts/   # chart components
+      layouts/             # app shell, sidebar, header
+      pages/               # each route as a separate page
+      features/            # incidents, teams, scenarios, auth
+      hooks/
+      lib/                 # API client, formatting, utilities
+      types/
+      styles/
+    public/
+  backend/
+    app/
+      main.py
+      api/v1/
+      core/                # config, auth, exceptions
+      db/                  # session and base
+      models/
+      schemas/
+      repositories/
+      services/
+      algorithms/          # later phases
+    alembic/
+    tests/
+  scripts/
+  docs/
+  docker-compose.yml
+  README.md
+```
+
+Use Vite + React + TypeScript and Tailwind CSS with versions that are mutually compatible. Use FastAPI, SQLAlchemy 2, Pydantic 2, Alembic and PostgreSQL with PostGIS. Supply a Docker Compose database service, persistent volume and health check. Supply `.env.example` files for frontend and backend. Keep credentials out of git and use `.gitignore`. Provide Windows PowerShell setup commands and Docker-based setup commands. Prefer reliable, minimal dependencies over unnecessary libraries.
+
+## B. Premium design system
+
+Build a polished **emergency operations command center** suitable for an academic final-year-style demonstration. The visual standard should resemble a high-quality enterprise GIS/operations SaaS dashboard, not a generic college template. Use dark navy/slate backgrounds, layered surfaces, restrained teal/cyan for interactive states, red for critical incidents, amber for warnings and green for available teams. Ensure WCAG-conscious contrast, readable typography, consistent spacing, rounded but not excessively playful components, professional shadows, subtle motion and skeleton loading states. Add a coherent light/dark theme only if it can be implemented completely; otherwise prioritize an excellent dark theme.
+
+The app shell must have a collapsible left sidebar, top bar with page title and breadcrumbs, global search UI (only functional where supported), current simulation badge, notifications sourced from actual records or explicitly empty state, user profile menu, and a responsive mobile navigation solution. Use Lucide icons consistently. Build reusable `StatCard`, `StatusBadge`, `DataTable`, `FilterBar`, `EmptyState`, `LoadingSkeleton`, `ConfirmDialog`, `PageHeader`, `ErrorState`, and `Toast` components. Avoid dummy buttons that pretend to perform actions.
+
+## C. Required routes
+
+Implement these routes and ensure every sidebar link works:
+
+1. `/dashboard` — command center overview.
+2. `/map` — Chennai disaster map (Phase 2 placeholder with a clearly marked future-feature state).
+3. `/incidents` — incident list, detail, create/edit forms (functional in Phase 1).
+4. `/routes` — route optimization workspace (Phase 3 placeholder).
+5. `/dispatch` — rescue dispatch (Phase 4 placeholder).
+6. `/scenarios` — scenario management (basic CRUD in Phase 1, map integration in Phase 2).
+7. `/analytics` — DAA analytics (Phase 5 placeholder).
+8. `/portal` — citizen and volunteer portal (Phase 4 placeholder).
+9. `/settings` — account and application settings.
+10. `/login` — authentication.
+
+The dashboard must contain KPI cards for active incidents, critical incidents, available teams, blocked roads, pending dispatches and simulated average response time. These values must come from backend database queries; where no meaningful measurement exists, show `Not measured` rather than inventing a number. Include a recent incidents table, incident severity chart, team status breakdown, latest audit/activity events and a map-preview card with an honest Phase 2 state. Filters, search and pagination should work for incidents.
+
+## D. Database and migrations
+
+Design SQLAlchemy models with UUID primary keys or a consistently documented ID strategy, timestamps, foreign keys, indexes, check constraints, proper enums and PostGIS geometry/geography fields where useful. Required tables:
+
+- `users`: id, display_name, email unique, password_hash, role, is_active, created_at.
+- `incidents`: id, title, description, category, severity, location geometry, affected_people_estimate, verification_status, status, reporter_id nullable, scenario_id nullable, created_at, updated_at.
+- `rescue_teams`: id, name, type, skills/capabilities, base_location, current_location, capacity, status, created_at.
+- `road_nodes`: id, source_osm_id, point geometry.
+- `road_edges`: id, source_node_id, target_node_id, line geometry, length_m, travel_time_s nullable, direction and status metadata.
+- `disaster_scenarios`: id, name, description, type, is_active, simulation_seed, created_by, created_at.
+- `scenario_road_closures`: id, scenario_id, road_edge_id, override_status, reason, created_at.
+- `rescue_assignments`: id, incident_id, team_id, status, proposed_route_data, cost, approved_by, timestamps.
+- `algorithm_runs`: id, scenario_id, algorithm_name, parameters JSON, input_metadata JSON, results JSON, runtime_ms nullable, created_at.
+- `audit_logs`: id, actor_id, action, entity_type, entity_id, metadata JSON, created_at.
+
+Use Alembic migrations, not ad hoc table creation on every startup. Ensure PostGIS extension initialization. Use realistic but **fictional** seed incidents and teams, clearly labeled simulated. Do not invent actual emergency events. Make seed scripts idempotent.
+
+## E. Backend API and security
+
+Create `/api/v1` REST endpoints for authentication, current user, dashboard summary, incidents, rescue teams, and scenarios. Use FastAPI dependency injection, Pydantic request/response schemas, consistent errors, pagination, filtering, validation, authorization, CORS configured by environment, and structured logs. Implement password hashing with a supported secure library and JWT authentication with expiry. Seed a development admin through environment variables; never embed a password in the repository. Admin can create/edit/verify; viewer has read-only access. Enforce roles on the backend, not just by hiding buttons in React. Document routes in `/docs`.
+
+Frontend API requests must use a typed client with a configurable base URL and proper loading/error handling. Make login functional, protect routes, display authenticated user information and provide logout. Do not claim production-grade token security without implementing appropriate safeguards; document the local development token strategy.
+
+## F. Acceptance tests and completion criteria
+
+Write tests for health endpoint, auth success/failure, role enforcement, incident CRUD, incident filtering, scenario CRUD and dashboard aggregates. Run backend tests, frontend lint/typecheck/build, and migration commands. Fix discovered failures. Test the app with an empty database and with seeded data. Do not claim a button works unless it triggers a real state change or API call. Provide an explicit README with PowerShell commands, `.env` configuration, Docker database startup, migration, seed, backend startup, frontend startup, and test commands.
+
+At the end, report: created/modified files, database tables, implemented API routes, functional UI pages, test commands and results, outstanding limitations, and exact next steps. **Stop after Phase 1.** Do not implement the Chennai OSM importer or DAA algorithms yet.
+
+---
+
+# PROMPT 2 — Full Chennai road network, GIS map and disaster scenario simulator
+
+You are continuing the existing RESQGRID repository from Phase 1. **Do not scaffold a new app or replace existing UI, API, authentication, or migrations.** First inspect the current code and verify the app still runs. Implement a high-quality **Chennai metropolitan study-area disaster simulation map** with real road geometry, simulated incidents and editable scenario-specific road closures. This phase is focused on data ingestion, spatial modeling, GIS UI, and scenario workflows, not route algorithms.
+
+## A. Geographic coverage and truthfulness
+
+Make the study-area boundary configurable using a GeoJSON polygon or bounding area. Document the chosen extent and source. Cover representative Chennai areas including Anna Nagar, T Nagar, Egmore, Guindy, Adyar, Velachery, Porur, Ambattur, Avadi, Tambaram, OMR and northern coastal areas where included in the defined metropolitan study area. Do not label this entire area 'Greater Chennai Corporation'; distinguish GCC limits from the broader metropolitan study area. Add an area selector and geographic coverage explanation in the UI.
+
+Use OpenStreetMap as a road-network source, not as a real-time flood or road safety feed. Include visible OpenStreetMap attribution. Document data import date, geographic extent, road type filters, OSMnx version, and ODbL attribution obligations. All hazards, road closures and incidents are simulated and must be clearly labeled. Never state that a road is flood-safe without verified hazard data.
+
+## B. Robust offline OSM import pipeline
+
+Create `scripts/import_chennai_roads.py` (or a documented equivalent). Use OSMnx to obtain drivable roads for a configurable study-area polygon, preserving node coordinates, edge geometries, directed roads, one-way restrictions, road length, OSM identifiers and available speed/travel time metadata. If OSM speed data is missing, use a documented **simulation assumption** rather than claiming real observed travel time. Handle multi-edges and parallel roads correctly; use unique internal edge IDs. Normalize geometry to EPSG:4326 for APIs and use appropriate metric calculations for distances. Persist data in PostGIS with spatial indexes and bulk insertion. Make import resumable/idempotent or explicitly safely replaceable. Cache downloaded source data and never re-download the full city on every server startup or route request.
+
+Because citywide OSM data can be large, implement an initial small-area development import, a larger-area production/demo import and a fallback synthetic road graph for offline demos. Provide clear progress logs, counts of nodes/edges, import duration and disk-size guidance. Handle API/network failures gracefully and do not silently substitute fake data for real data; label the fallback visibly. Create viewport-bounded endpoints that return only relevant simplified geometry and support pagination/limits. Do not send the entire road network to the browser as one giant GeoJSON response.
+
+## C. Interactive GIS map design
+
+Build `/map` as a polished, nearly full-viewport map experience with a professional operations UI. Use React Leaflet, OpenStreetMap tile layers and attribution, with a responsive collapsible left panel and optional right details drawer. Add:
+
+- Search by known locality or coordinates, map centering and zoom controls.
+- Layers for road network, road status, incidents, rescue bases, teams, optional seeded hospitals/shelters, and scenario overlays.
+- Colored incident markers based on verified severity; accessible legend and tooltips.
+- Marker clustering for large incident sets and viewport-based fetching.
+- Road-edge click inspection with road name/OSM metadata when available, length, direction and current scenario status.
+- Create incident by map click, select coordinates, fill a validated form, save to backend and immediately display the marker.
+- Edit/verify/close incidents based on role permissions.
+- Road closure editing for admins: open, restricted, blocked; add reason, save, undo and reset.
+- Scenario switcher and clear banner naming the active simulated scenario.
+- Responsive layout, loading states, error messages, no-overflow panels and good performance.
+
+Do not show real-time GPS dots, flood zones or response times unless the data exists and is explicitly labeled appropriately.
+
+## D. Scenario management and persistence
+
+Build a fully working `/scenarios` page with create, clone, activate, deactivate, reset, rename and delete (with confirmation) operations. Scenario-specific incidents and road-status overrides must remain isolated. Original imported OSM road edges must never be permanently destroyed by a scenario closure. On scenario switch, map overlays and counters must update from backend data.
+
+Seed **five reproducible hypothetical scenarios**:
+
+1. Velachery-area northeast monsoon flood simulation.
+2. Coastal cyclone disruption simulation.
+3. North Chennai heavy-rainfall transport disruption.
+4. Multi-zone Chennai flooding and rescue demand.
+5. User-configurable custom scenario.
+
+For each scenario, define a deterministic seed, a list of simulated incidents, road closures, and optional rescue-team starting positions. Clearly distinguish a scenario's hypothetical hazard footprint from real historical flooding. Provide a 'Reset to seeded scenario' operation. Add a scenario timeline or event log if feasible without compromising core functionality.
+
+## E. API and database integration
+
+Implement API endpoints for study-area metadata, map features by bounding box, incident location creation, scenario CRUD and activation, scenario-specific road overrides, and summary counts. Add spatial indexes and query bounds validation. Protect write operations with role authorization. Avoid exposing private reporter details in public endpoints. Add audit log records for verification, scenario activation and closure edits. Provide a stable graph version/scenario version value for Phase 3 cache invalidation.
+
+## F. Performance and tests
+
+Test coordinate validity, boundary cases, scenario isolation, activation, blocked-edge persistence, OSM importer idempotency, bbox limits and permissions. Run the frontend build and backend tests. Manually verify a Chennai map view, add an incident, block a road, switch scenarios and restore the original scenario. Record any importer or network limitations honestly.
+
+**Final result:** A professional citywide study-area GIS map with persistent simulated disasters and road closures. **Stop after Phase 2.** Do not pretend shortest-path optimization is already operational.
+
+---
+
+# PROMPT 3 — DAA algorithms, shortest-path routing and visual comparisons
+
+Continue the existing RESQGRID project. Inspect Phases 1 and 2 first. Implement a real Python **DAA routing engine** operating on the imported directed Chennai road graph and active scenario road closures. This is the academic heart of the project: algorithms must be implemented and analyzed, not merely named in the interface. Preserve all existing working pages, API contracts and database data.
+
+## A. Routing problem definition
+
+Define graph G=(V,E), where intersections are vertices and drivable road segments are directed edges. Each edge has nonnegative weight for either distance in meters or **estimated** travel time in seconds. Respect one-way restrictions and scenario closures. 'Restricted' edges may use a configurable cost multiplier, clearly documented as a simulation assumption. Road safety is not guaranteed by these assumptions. Routes must follow actual road geometries and cannot be represented as straight lines between arbitrary coordinates.
+
+Implement spatial snapping from rescue-team/incident coordinates to nearest suitable graph nodes, with a bounded search distance and meaningful failure when snapping is impossible. Detect unreachable destinations and return a structured no-route response. Cache a graph snapshot keyed by imported network version, active scenario ID and closure version; invalidate after edits. Avoid reloading the full graph for every query. Use stable, reproducible input snapshots.
+
+## B. Custom algorithm implementations
+
+Write modular, documented Python implementations **from scratch**:
+
+1. **BFS:** queue-based reachability on the directed graph, visited set, predecessor tracking, O(V+E) traversal. Use for connectivity/reachability, not weighted shortest paths.
+2. **DFS:** stack-based reachability/connected exploration, O(V+E). Provide small-graph traversal visualization data.
+3. **Dijkstra:** adjacency lists, binary min-heap, distance relaxation, predecessor reconstruction, stale-entry handling, nonnegative edge validation. Explain O((V+E) log V) under the chosen heap representation and memory costs.
+4. **A*:** priority queue with g and f scores, predecessor tracking, consistent/admissible heuristic. For distance mode use geodesic straight-line lower bound. For travel-time mode use distance divided by a defensible upper bound on edge speed, otherwise use h=0. Verify optimality against Dijkstra on the same graph.
+
+Do not use NetworkX's shortest path in production; it may be used in tests as an independent oracle. Structure algorithms as pure functions accepting graph data and returning typed result objects with path node IDs, edge IDs, total cost, visited nodes, relaxations, execution time, status and error reason. Ensure parallel road edges are handled correctly during reconstruction.
+
+## C. Route optimization page
+
+Build `/routes` as a premium split-view map and analysis workspace. Left panel: active scenario, origin selector (team/base/map click), destination selector (incident/map click), cost mode (distance vs estimated travel time), algorithm selector (Dijkstra/A*/compare), road closure controls, and a Run button. Main area: interactive map showing actual route geometry with a legend and distinct colors for algorithms; clickable waypoints and blocked roads. Right panel: route summary cards, algorithm comparison table, metrics, explanation of selected path and no-route states. Include 'Rerun after closure' and 'Clear route' actions.
+
+When comparing Dijkstra and A*, use the same graph version, endpoints and weight model. Show route cost, distance, estimated travel time, visited vertices, edge relaxations, algorithm-only runtime and measured memory where available. Clearly explain that two optimal algorithms may return different paths with equal cost. Display useful route differences without asserting one algorithm is always faster. Provide a small graph-step animation using recorded snapshots with a strict size cap so it does not overwhelm the browser on the full Chennai network.
+
+## D. API, measurement and persistence
+
+Create typed endpoints such as `POST /api/v1/routes/optimize`, `POST /api/v1/routes/compare`, `GET /api/v1/routes/runs` and `GET /api/v1/routes/runs/{id}`. Return GeoJSON geometry, algorithm metrics, graph metadata, snap distances and assumptions. Store run results and scenario/network versions in `algorithm_runs` for reproducibility.
+
+Use `time.perf_counter()` around algorithm execution only; measure graph loading and HTTP separately. If using `tracemalloc`, label its readings as traced Python allocation peak, not total process RAM. Ensure graph caching does not distort comparisons unfairly. Provide theoretical complexity alongside observed measurements and document methodology.
+
+## E. Testing and acceptance
+
+Test tiny graphs with known answers, directed one-way roads, parallel edges, zero-weight edges, equal-cost routes, disconnected components, blocked edges, restricted edges, invalid coordinates and unreachable snapped nodes. Cross-check Dijkstra and A* optimal path cost with an independent reference on sample graphs. Test on increasingly large sampled Chennai subgraphs and avoid freezing the UI. Verify end-to-end: choose team and incident -> compute route -> block a used road -> recompute -> see updated route or no-route message. Run all tests/builds and fix failures.
+
+At completion, explain which algorithms are custom, which graph assumptions are used, which metrics are genuinely measured and how to demonstrate them to faculty. **Stop after Phase 3.**
+
+---
+
+# PROMPT 4 — Rescue teams, greedy baseline, min-cost max-flow and dispatch workflow
+
+Continue the current RESQGRID application without re-scaffolding. This phase builds a functioning **multi-incident rescue dispatch optimization engine** using the actual Chennai road-route costs from Phase 3. The primary DAA comparison is a fast greedy assignment baseline versus a correctly formulated min-cost max-flow optimizer. The system remains an academic simulator and must require human approval for dispatch decisions.
+
+## A. Data and operational workflow
+
+Expand rescue team records to include name, team category, capabilities, vehicle mode, home base, current simulated position, status, personnel count, capacity, shift availability and last updated time. Add incident requirements: verified severity, required capabilities, requested number of teams, location, reporting time, status and scenario. Build a consistent status workflow: proposed -> approved -> dispatched -> en_route -> arrived -> completed, with cancellation rules and audit logs. Prevent invalid transitions. Ensure only eligible available teams can be assigned and prevent double booking via database transactions and locking/constraints.
+
+Create a polished `/dispatch` page with three panels: verified incident queue and priority filters; available teams and capability filters; interactive map and assignment results. Add 'Generate Greedy Plan', 'Optimize Dispatch', 'Compare Plans', 'Approve Selected Plan', 'Dispatch', 'Update Status', and 'Cancel Assignment' actions, each backed by working APIs. Display unassigned incidents with reasons such as unavailable teams, incompatible capability, insufficient demand capacity or disconnected roads. Use explicit simulation badges for movement/status updates.
+
+## B. Assignment mathematical model
+
+Model each eligible team as a capacity-1 source-side node (one simultaneous incident assignment) and each incident as a demand node with integer required team count. Edges exist only when team capabilities satisfy incident requirements and a feasible route exists. Edge cost is the Phase 3 route cost under a documented distance or estimated travel-time model. Source -> team capacity 1, team -> incident capacity 1, incident -> sink capacity requested teams. Clarify that this model assigns **teams**, not individual evacuees; rescue capacity may be displayed but must not silently substitute for incident team demand.
+
+Implement a lexicographic objective: first maximize satisfied demand for the highest priority tier, then the next tier, and only after that minimize total route/dispatch cost among plans with equal tier fulfillment. Document the chosen method, such as sequential tier optimization with preserved commitments, or a carefully proven bounded-cost construction. Do not use unexplained arbitrary priority weights. Include a policy for ties and deterministic reproducibility. Allow an incident to request multiple teams, and allow partial fulfillment when shortages exist, clearly marked.
+
+## C. Algorithms from scratch
+
+1. **Greedy baseline:** sort eligible incident slots by severity and a documented stable tie-break, then assign the nearest eligible available team by actual route cost. Report limitations of greedy matching and its approximate runtime for this implementation.
+2. **Min-Cost Max-Flow:** implement residual edges, reverse edges, integer capacities, shortest augmenting paths and potentials or another correct approach that handles residual negative reverse costs. Ensure flow feasibility, nonnegative original costs, correct total cost accounting and route reconstruction. Explain complexity in terms of vertices, edges and flow augmentations.
+3. Compare both algorithms on the exact same immutable snapshot of teams, incidents, capabilities, route costs and closures. Do not compare different objectives as if they were directly equivalent. Display assigned count by severity tier, unmet demand, total dispatch cost, average route cost and measured execution time.
+
+If the city graph is large, compute or cache only required feasible team-incident route costs and invalidate when roads/positions change. Avoid combinatorial explosion by documenting sensible simulation limits and API timeouts. Make errors explicit rather than inventing assignments.
+
+## D. Portal and near-real-time simulation
+
+Complete the citizen/volunteer portal. Citizens can submit fictional test incidents through a validated form; these remain unverified until an admin reviews them. Volunteers can register availability and capabilities with appropriate privacy controls. Do not expose sensitive contact details publicly. Add WebSocket or server-sent event updates for incident status, team availability and approved assignments, with reconnect logic and authenticated access. If implementing animated team movement, label it 'simulated location' and advance along calculated route geometry; never imply live GPS.
+
+## E. Security, tests and acceptance
+
+Add server-side authorization for approval and dispatch. Use transactional safeguards for simultaneous approval requests. Test shortages, unreachable incidents, capability mismatches, equal-cost ties, multiple required teams, partial fulfillment, priority tier behavior, residual graph correctness, cancellation and double-booking prevention. Cross-check min-cost flow outputs on small hand-solvable cases and with an independent reference library only in tests. Verify the full workflow: select Chennai scenario -> view verified incidents -> choose teams -> run greedy and optimized plan -> compare -> approve -> update statuses -> persist results. Run tests and build.
+
+End with an implemented-features report, limitations, API list, and faculty demo instructions. **Stop after Phase 4.**
+
+---
+
+# PROMPT 5 — Analytics, reproducible benchmarks, integration, deployment and capstone demonstration
+
+You are completing the existing RESQGRID capstone. Do not start over, remove existing features or replace functioning backend calls with mocked data. Audit the current application from Phases 1–4, identify incomplete connections, then implement the final performance-analysis and quality phase. The result must be a polished full-stack Chennai disaster-response simulation that demonstrates **Design AND Analysis of Algorithms** with real measured outputs.
+
+## A. Algorithm analytics dashboard
+
+Build `/analytics` with clear, interactive and data-backed panels:
+
+- Dijkstra vs A*: optimal route cost, runtime, explored nodes, relaxations and route feasibility.
+- BFS/DFS reachability summaries on selected small graph samples.
+- Greedy vs Min-Cost Max-Flow: assigned team count by priority, total dispatch cost, unmet demand, runtime and fairness/coverage indicators with definitions.
+- Graph size vs execution time for repeatable sampled networks.
+- Road closure percentage vs reachable incident percentage.
+- Resource availability vs demand fulfillment.
+- Individual run history with timestamps, scenario IDs, graph version, seed, algorithm parameters and result details.
+- CSV export and readable PDF/report export only if reliable; prioritize CSV and a print-friendly summary.
+
+Use Recharts and a consistent visual language. Every graph must have labeled axes, units, legends, accessible descriptions, meaningful empty states and source labels. Do not fabricate benchmark points or chart values. Use backend-saved results and distinguish simulated scenario values from measured algorithm performance.
+
+## B. Reproducible benchmarking framework
+
+Create a benchmark runner with fixed random seeds, documented hardware/runtime environment, controlled graph samples, multiple repetitions, warm-up policy, input sizes, algorithm-only timing via `perf_counter`, and memory measurement methodology. Run identical inputs for algorithms being compared. Report median and variability where appropriate; separate graph loading, preprocessing, database I/O, algorithm execution, API latency and UI rendering. Explain theoretical complexity and practical tradeoffs without promising that A* or min-cost flow always wins. Allow exporting raw run records.
+
+## C. Scenario laboratory
+
+Upgrade `/scenarios` into a simulator control center with editable parameters: chosen Chennai subarea, incident count, severity mix, rescue team count, capabilities, road closure fraction, seed and scenario name. Add run, pause for display (not background compute unless implemented), reset, clone, compare and save controls. Recompute routes and proposed dispatch plans when relevant inputs change, using explicit user actions or safely debounced requests. Maintain a history of scenario versions and comparison results. Provide three polished preset demo cases: Velachery monsoon flood, coastal cyclone disruption and citywide multi-incident response. They must be clearly hypothetical.
+
+## D. End-to-end reliability and UI polish
+
+Audit every page and sidebar route. Fix broken buttons, blank screens, misleading mock values, layout overflow, map resizing, API errors, stale caches, role bypasses, missing loading states and database migrations. Ensure dark navy/teal visual consistency, mobile/tablet responsiveness, keyboard accessibility, correct color contrast and consistent charts/tables. Implement proper React error boundaries and backend validation. Test authentication and authorization, scenario isolation, incident creation, road closure, route recalculation, dispatch approval, team status updates, analytics persistence and export.
+
+Add backend pytest tests, frontend unit/component tests where practical, and Playwright end-to-end tests for critical workflows. Tests should run on a seeded small offline graph without requiring a live OSM download. Run lint, TypeScript typecheck, frontend production build, backend tests and E2E tests if dependencies/environment permit. Report exactly which commands ran and which passed or failed; do not claim success if a tool could not execute.
+
+## E. Deployment and documentation
+
+Provide a working Docker Compose stack for frontend, FastAPI, PostgreSQL/PostGIS, migration/seed and optional importer services. Use environment variables and health checks, persistent DB volume and reasonable startup ordering. Document Windows PowerShell local development setup separately from Docker setup. Add `.env.example`, `README.md`, API overview, architecture diagram, database ER diagram, algorithm pseudocode and complexity table, OSM data provenance, security assumptions, simulated-data disclaimers, and known limitations. Include a one-command or clearly documented multi-command startup process.
+
+Write a 5–7 minute faculty demonstration script:
+1. Log into the command center.
+2. Open Chennai metropolitan study-area map.
+3. Activate a hypothetical flood scenario.
+4. Create and verify an incident.
+5. Block a road and demonstrate route recalculation.
+6. Compare Dijkstra and A* on identical inputs.
+7. Generate greedy and min-cost flow rescue dispatch plans.
+8. Approve an assignment and update simulated team status.
+9. Show saved performance charts and export data.
+10. Explain time complexity, space complexity, algorithm correctness and practical limitations.
+
+## F. Final acceptance checklist
+
+The application must genuinely connect frontend -> backend -> database -> algorithms. Confirm the database stores incidents, road closures, teams, assignments and algorithm runs. Confirm the map uses imported OSM road geometry when available, and visibly labels any synthetic fallback. Confirm algorithm outputs are computed rather than hardcoded. Confirm scenario changes do not corrupt the base network. Confirm routes are not described as verified safe. Confirm user roles and approval requirements are enforced server-side.
+
+Finish with: (1) implemented/partial/missing feature checklist, (2) tests executed and results, (3) startup commands, (4) demo login setup method without revealing secrets, (5) faculty demo script, (6) known limitations and future work. Do not claim real-world emergency readiness. **Phase 5 completes the project.**

@@ -1,0 +1,6 @@
+{
+  "name": "RESQGRID — Chennai Rescue Routing & Dispatch",
+  "description": "Academic DAA simulation and decision-support prototype for emergency rescue routing and team dispatch optimization across the Chennai metropolitan study area using custom graph algorithms.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

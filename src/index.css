@@ -1,0 +1,59 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@layer base {
+  :root {
+    --font-display: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #070d19;
+    color: #f1f5f9;
+  }
+
+  h1, h2, h3, h4, .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-mono, .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* Restrained Dark GIS Map Tile Filter for Leaflet OSM Tiles */
+.resqgrid-map .leaflet-tile-pane {
+  filter: invert(93%) hue-rotate(180deg) brightness(92%) contrast(88%) saturate(75%);
+}
+
+.resqgrid-map .leaflet-control-attribution {
+  background: rgba(7, 13, 25, 0.85) !important;
+  color: #94a3b8 !important;
+  font-size: 11px !important;
+  border-top-left-radius: 4px;
+}
+
+.resqgrid-map .leaflet-control-attribution a {
+  color: #2dd4bf !important;
+}
+
+.resqgrid-map .leaflet-popup-content-wrapper,
+.resqgrid-map .leaflet-popup-tip {
+  background: #0e1729 !important;
+  color: #f1f5f9 !important;
+  border: 1px solid #1e293b;
+  border-radius: 6px !important;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.45) !important;
+}
+
+@media print {
+  aside, header, .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #0f172a !important;
+  }
+}
